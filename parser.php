@@ -25,6 +25,49 @@ ini_set('display_errors', 'stderr');
 //<instruction order="instructionNumber" opcode="INSTRUCTIONNAME"> 
 //  <arg1 type="argType">argName<arg1/>
 //<instruction/>
+
+// $group1 = array(
+//     'home'  => True,
+//     );
+
+// // used for $current_users = 'current';
+// $group2 = array(
+//     'users.online'      => True,
+//     'users.location'    => True,
+//     'users.featured'    => True,
+//     'users.new'         => True,
+//     'users.browse'      => True,
+//     'users.search'      => True,
+//     'users.staff'       => True,
+//     );
+
+// // used for $current_forum = 'current';
+// $group3 = array(
+//     'forum'     => True,
+//     );
+
+//groups of instructions divided by type and amount of arguments
+
+$withoutArg = array(
+    'CREATEFRAME' => true,
+    'PUSHFRAME' => true,
+    'POPFRAME' => true,
+    'RETURN' => true,
+    'BREAK' => true
+);
+
+$oneVar = array(
+    'DEFVAR' => true,
+    'POPS' => true
+);
+
+$varAndSymb = array(
+    'MOVE' => true,
+    'INT2CHAR' => true,
+    'STRLEN' => true,
+    'TYPE' => true
+);
+
 $lineCount = 0;
 $headerOk = false;
 $instructCount = 1;
@@ -46,20 +89,24 @@ while ($line = fgets(STDIN))
     //TODO: print XML header and program block
     $line = splitLine($line);
     
-    switch(strtoupper($line[0]))
+    $instruction = strtoupper($line[0]);
+
+    if(isset($withoutArg[$instruction]))
     {
-        case 'DEFVAR':
-        case 'POPS':
-            checkVarArgInstruct($line[1]);
-            printInstruction($line, $instructCount);
-            break;
-        case 'CREATEFRAME':
-        case 'PUSHFRAME':
-        case 'POPFRAME':
-        case 'RETURN':
-        case 'BREAK':
-            printNoArgsInstruct($line, $instructCount);
-            break;
+        printInstruction($line, $lineCount);
+    }
+
+    if(isset($oneVar[$instruction]))
+    {
+        checkVar($line[1]);
+        printInstruction($line, $instructCount);
+    }
+
+    if(isset($varAndSymb[$instruction]))
+    {
+        checkVar($line[1]);
+       // checkSymbol($line[2]);
+        printInstruction($line, $instructCount);
     }
     $instructCount++;
     $lineCount+=1;
@@ -67,19 +114,62 @@ while ($line = fgets(STDIN))
 
 endXMLwriter();
 
+function checkVar($arg)
+{
+    if(!preg_match("/^(GF|LF|TF)@[\-\$&%\*!\?_A-Za-z]+[\-\$&%\*!\?_A-Za-z0-9]*$/", $arg))
+    {
+        exit(1);
+    }
+}
+
+function checkLabel($arg)
+{
+    if(!preg_match("/^[\-\$&%\*!\?_A-Za-z]+[\-\$&%\*!\?_A-Za-z0-9]*$/", $arg))
+    {
+        exit(1);
+    }
+}
+function checkConst($arg)
+{
+    //check int constant
+    if(!preg_match("/^int@-*[0-9]*$/", $arg))
+    {
+        exit(1);
+    }
+    //check bool constant
+    elseif(!preg_match("/^bool@true|false{1}$/",$arg))
+    {
+        exit(1);
+    }
+    //check string constant //TODO: string constant regex
+
+    //checking nil constant
+    elseif(!preg_match("/^nil@nil$/", $arg))
+    {
+        exit(1);
+    }
+}
+
+function checkSymbol($arg)
+{
+    if(!(checkConst($arg) || checkVar($arg)))
+    {
+        exit(1);
+    }
+}
 function printInstruction($line, $instructCount)
 {
-    switch(count($line)-1)
+    switch(count($line))
     {
-        case 0:
+        case 1:
             printNoArgsInstruct($line, $instructCount);
             break;
-        case 1:
+        case 2:
             printOneVarInstruct($line, $instructCount);
             break;
-        case 2:
+        case 3:
             break;
-        case 3: 
+        case 4: 
             break;
     }
 }
