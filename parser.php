@@ -50,38 +50,49 @@ while ($line = fgets(STDIN))
     {
         case 'DEFVAR':
         case 'POPS':
-        {
-            if(preg_match("/^(GF|LF|TF)@[\-\$&%\*!\?_A-Za-z]+[\-\$&%\*!\?_A-Za-z0-9]*$/", $line[1]))
-            {
-                varArg($line, $instructCount);
-            }
-            else
-            {
-                //TODO: error code
-                exit(1);
-            }
-            $instructCount++;
-        }
+            checkVarArgInstruct($line[1]);
+            printInstruction($line, $instructCount);
+            break;
         case 'CREATEFRAME':
         case 'PUSHFRAME':
         case 'POPFRAME':
         case 'RETURN':
         case 'BREAK':
-        {
-
-        }
-        
+            printNoArgsInstruct($line, $instructCount);
+            break;
     }
+    $instructCount++;
     $lineCount+=1;
 }
 
 endXMLwriter();
 
-function noArgs($line, $instructCount)
+function printInstruction($line, $instructCount)
 {
-
+    switch(count($line)-1)
+    {
+        case 0:
+            printNoArgsInstruct($line, $instructCount);
+            break;
+        case 1:
+            printOneVarInstruct($line, $instructCount);
+            break;
+        case 2:
+            break;
+        case 3: 
+            break;
+    }
 }
-function varArg($line, $instructCount)
+function checkVarArgInstruct(string $variable)
+{
+    if(!preg_match("/^(GF|LF|TF)@[\-\$&%\*!\?_A-Za-z]+[\-\$&%\*!\?_A-Za-z0-9]*$/", $variable))
+    {
+        //TODO: error code
+        exit(1);
+    }
+}
+
+function printOneVarInstruct($line, $instructCount)
 {
     global $xw;
     $xw->startElement("instruction");
@@ -89,6 +100,16 @@ function varArg($line, $instructCount)
     $xw->writeAttribute('opcode', $line[0]);
     $xw->startElement("arg1");
     $xw->writeAttribute('type', 'argType');
+    $xw->endElement();
+    $xw->endElement();
+}
+
+function printNoArgsInstruct($line, $instructCount)
+{
+    global $xw;
+    $xw->startElement("instruction");
+    $xw->writeAttribute('order', $instructCount);
+    $xw->writeAttribute('opcode', $line[0]);
     $xw->endElement();
 }
 function splitLine(string $line)
