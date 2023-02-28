@@ -1,12 +1,8 @@
 .IPPcode23
 BREAK
-ADD GF@vysledek GF@promnna1 GF@Fffff#092
-SUB GF@vysledek GF@promnna1 GF@Fffff#09
 DEFVAR GF@$$$aaa
 RETURN
+ADD GF@$$$aaa GF@$$$aaa GF@$$$aaa
 RETURN
-MUL GF@vysledek GF@promnna1 GF@Fffff#092
-IDIV GF@vysledek GF@promnna1 GF@Fffff#092
 PUSHFRAME
-MUL GF@vysledek GF@promnna1 GF@Fffff#092
 BREAK
