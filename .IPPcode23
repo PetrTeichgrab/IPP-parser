@@ -1,15 +1,12 @@
 .IPPcode23
-DEFVAR GF@$$$aaa
-MOVE GF@counter string@ #Inicializace proměnné na prázdný řetězec
-#Jednoduchá iterace , dokud nebude splněna zadaná podmínka
-LABEL while
-RETURN
 BREAK
+ADD GF@vysledek GF@promnna1 GF@Fffff#092
+SUB GF@vysledek GF@promnna1 GF@Fffff#09
+DEFVAR GF@$$$aaa
+RETURN
+RETURN
+MUL GF@vysledek GF@promnna1 GF@Fffff#092
+IDIV GF@vysledek GF@promnna1 GF@Fffff#092
 PUSHFRAME
-JUMPIFEQ end GF@counter string@aaa
-WRITE string@Proměnná\032GF@counter\032obsahuje\032
-WRITE GF@counter
-WRITE string@\010
-CONCAT GF@counter GF@counter string@a
-JUMP while
-LABEL end
+MUL GF@vysledek GF@promnna1 GF@Fffff#092
+BREAK

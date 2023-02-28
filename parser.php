@@ -48,6 +48,14 @@ ini_set('display_errors', 'stderr');
 
 //groups of instructions divided by type and amount of arguments
 
+//var
+
+$types = array(
+    0 => 'var',
+    1 => 'symb',
+    2 => 'label'
+);
+
 $withoutArg = array(
     'CREATEFRAME' => true,
     'PUSHFRAME' => true,
@@ -56,11 +64,21 @@ $withoutArg = array(
     'BREAK' => true
 );
 
+$oneLabel = array(
+    'CALL' => true,
+    'LABEL' => true,
+    'JUMP' => true
+);
+
 $oneVar = array(
     'DEFVAR' => true,
     'POPS' => true
 );
 
+$oneSymb = array(
+    'EXIT' => true,
+    'DPRINT' => true
+);
 $varAndSymb = array(
     'MOVE' => true,
     'INT2CHAR' => true,
@@ -68,10 +86,33 @@ $varAndSymb = array(
     'TYPE' => true
 );
 
+$varSymb1Symb2 = array(
+    'ADD' => true,
+    'SUB' => true,
+    'MUL' => true,
+    'IDIV' => true,
+    'LT' => true,
+    'GT' => true,
+    'EQ' => true,
+    //'AND' => true,
+    'OR' => true,
+    'NOT' => true,
+    'STRI2INT' => true,
+    'CONCAT' => true,
+    'GETCHAR' => true,
+    'SETCHAR' => true
+);
+
+$labelSymb1Symb2 = array(
+    'JUMPIFEQ' => true,
+    'JUMPIFNEQ' => true,
+);
+
+$error = 0;
 $lineCount = 0;
 $headerOk = false;
-$instructCount = 1;
 $xw = new XMLWriter();
+$instructCount = 0;
 
 const HEAD = ".IPPcode23";
 
@@ -93,23 +134,73 @@ while ($line = fgets(STDIN))
 
     if(isset($withoutArg[$instruction]))
     {
-        printInstruction($line, $lineCount);
+        $instructCount++;
+        printInstruction($line, $instructCount);
+        continue;
     }
 
     if(isset($oneVar[$instruction]))
     {
-        checkVar($line[1]);
-        printInstruction($line, $instructCount);
+        if(checkVar($line[1]))
+        {
+            $instructCount++;
+            printInstruction($line, $instructCount, $types[0]);
+            continue;
+        }
+        else
+            exit(1);
     }
 
-    if(isset($varAndSymb[$instruction]))
+    if(isset($oneLabel[$instruction]))
     {
-        checkVar($line[1]);
-       // checkSymbol($line[2]);
-        printInstruction($line, $instructCount);
+        if(checkLabel($line[1]))
+        {
+            $instructCount++;
+            printInstruction($line, $instructCount, $types[2]);
+            continue;
+        }
+        else
+            exit(1);
     }
-    $instructCount++;
-    $lineCount+=1;
+
+    if(isset($oneSymb[$instruction]))
+    {
+        if(checkSymbol($line[1]))
+        {
+            $instructCount++;
+            printInstruction($line, $instructCount, $types[1]);
+            continue;
+        }
+        else
+        {
+            exit(1);
+        }
+    }
+
+    if(isset($varSymb1Symb2[$instruction]))
+    {
+        if(checkVar($line[1]) && checkSymbol($line[2]) && checkSymbol($line[3]))
+        {
+            $instructCount++;
+            printInstruction($line, $instructCount, $types[0], $types[1], $types[2]);
+            continue;
+        }
+        else
+            exit(1);        
+    }
+
+    if(isset($labelSymb1Symb2[$instruction]))
+    {
+        if(checkLabel($line[1]) && checkSymbol($line[2]) && checkSymbol($line[3]))
+        {
+            $instructCount++;
+            printInstruction($line, $instructCount, $types[0], $types[1], $types[2]);
+            continue;
+        }        
+        else
+            exit(1);
+    }
+    $lineCount++;
 }
 
 endXMLwriter();
@@ -118,46 +209,50 @@ function checkVar($arg)
 {
     if(!preg_match("/^(GF|LF|TF)@[\-\$&%\*!\?_A-Za-z]+[\-\$&%\*!\?_A-Za-z0-9]*$/", $arg))
     {
-        exit(1);
+        return false;
     }
+    return true;
 }
 
 function checkLabel($arg)
 {
     if(!preg_match("/^[\-\$&%\*!\?_A-Za-z]+[\-\$&%\*!\?_A-Za-z0-9]*$/", $arg))
     {
-        exit(1);
+        return false;
     }
+    return true;
 }
 function checkConst($arg)
 {
     //check int constant
     if(!preg_match("/^int@-*[0-9]*$/", $arg))
     {
-        exit(1);
+        return false;
     }
     //check bool constant
     elseif(!preg_match("/^bool@true|false{1}$/",$arg))
     {
-        exit(1);
+        return false;
     }
     //check string constant //TODO: string constant regex
 
     //checking nil constant
     elseif(!preg_match("/^nil@nil$/", $arg))
     {
-        exit(1);
+        return false;
     }
+    return true;
 }
 
 function checkSymbol($arg)
 {
     if(!(checkConst($arg) || checkVar($arg)))
     {
-        exit(1);
+        return false;
     }
+    return true;
 }
-function printInstruction($line, $instructCount)
+function printInstruction($line, $instructCount, $type1 = "var", $type2 = "var", $type3 = "var")
 {
     switch(count($line))
     {
@@ -165,11 +260,13 @@ function printInstruction($line, $instructCount)
             printNoArgsInstruct($line, $instructCount);
             break;
         case 2:
-            printOneVarInstruct($line, $instructCount);
+            printOneArgInstruct($line, $instructCount, $type1);
             break;
         case 3:
+            printTwoArgInstruct($line, $instructCount, $type1, $type2);
             break;
-        case 4: 
+        case 4:
+            printThreeArgInstruct($line, $instructCount, $type1, $type2, $type3); 
             break;
     }
 }
@@ -182,14 +279,45 @@ function checkVarArgInstruct(string $variable)
     }
 }
 
-function printOneVarInstruct($line, $instructCount)
+function printOneArgInstruct($line, $instructCount, $type1)
 {
     global $xw;
     $xw->startElement("instruction");
     $xw->writeAttribute('order', $instructCount);
     $xw->writeAttribute('opcode', $line[0]);
     $xw->startElement("arg1");
-    $xw->writeAttribute('type', 'argType');
+    $xw->writeAttribute('type', $type1);
+    $xw->endElement();
+    $xw->endElement();
+}
+function printThreeArgInstruct($line, $instructCount, $type1, $type2, $type3)
+{
+    global $xw;
+    $xw->startElement("instruction");
+    $xw->writeAttribute('order', $instructCount);
+    $xw->writeAttribute('opcode', $line[0]);
+    $xw->startElement("arg1");
+    $xw->writeAttribute('type', $type1);
+    $xw->startElement("arg2");
+    $xw->writeAttribute('type', $type2);
+    $xw->startElement("arg3");
+    $xw->writeAttribute('type', $type3);
+    $xw->endElement();
+    $xw->endElement();
+    $xw->endElement();
+    $xw->endElement();
+}
+function printTwoArgInstruct($line, $instructCount, $type1, $type2)
+{
+    global $xw;
+    $xw->startElement("instruction");
+    $xw->writeAttribute('order', $instructCount);
+    $xw->writeAttribute('opcode', $line[0]);
+    $xw->startElement("arg1");
+    $xw->writeAttribute('type', $type1);
+    $xw->startElement("arg2");
+    $xw->writeAttribute('type', $type2);
+    $xw->endElement();
     $xw->endElement();
     $xw->endElement();
 }
