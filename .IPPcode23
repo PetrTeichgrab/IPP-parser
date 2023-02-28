@@ -1,8 +1,10 @@
 .IPPcode23
-BREAK
 DEFVAR GF@$$$aaa
+LABEL while
 RETURN
-ADD GF@$$$aaa GF@$$$aaa GF@$$$aaa
-RETURN
-PUSHFRAME
 BREAK
+MUL GF@$$$aaa GF@$$$aaa GF@$$$aaa
+PUSHFRAME
+WRITE GF@counter
+JUMP while
+LABEL end
