@@ -1,10 +1,4 @@
-.IPPcode23
-DEFVAR GF@$$$aaa
-LABEL while
-RETURN
-BREAK
-MUL GF@$$$aaa GF@$$$aaa GF@$$$aaa
-PUSHFRAME
-WRITE GF@counter
-JUMP while
-LABEL end
+.IPPcode23  
+#nacteni vstupu a vypis
+
+READ GF@y bool
